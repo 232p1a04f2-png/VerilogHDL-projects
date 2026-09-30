@@ -1,0 +1,372 @@
+///////// ALU 16 Bit design ////////////
+
+module ALU16(
+
+    input [4:0] opcode,
+    input [15:0] A, B,
+
+    output reg [15:0] result,
+    output reg flagc,
+    output reg flagz
+);
+
+    parameter ADD    = 5'b00000,
+              SUB    = 5'b00001,
+              MUL    = 5'b00010,
+              DIV    = 5'b00011,
+              MOD    = 5'b00100,
+              MAC    = 5'b00101,
+              AND_OP = 5'b00110,
+              OR_OP  = 5'b00111,
+              XOR_OP = 5'b01000,
+              XNOR_OP= 5'b01001,
+              NOT_OP = 5'b01010,
+              NAND_OP= 5'b01011,
+              NOR_OP = 5'b01100,
+              SHL    = 5'b01101,
+              SHR    = 5'b01110,
+              ASHR   = 5'b01111,
+              ROL    = 5'b10000,
+              ROR    = 5'b10001,
+              CMP    = 5'b10010,
+              INC    = 5'b10011,
+              DEC    = 5'b10100,
+              PASS_A = 5'b10101,
+              PASS_B = 5'b10110,
+              MIN_OP = 5'b10111,
+              MAX_OP = 5'b11000;
+
+    always @(*) begin
+
+        result = 16'b0;
+        flagc  = 1'b0;
+        flagz  = 1'b0;
+
+        case(opcode)
+
+            ADD: begin
+                result = A + B;
+                flagc = (result < A);
+            end
+
+            SUB: begin
+                result = A - B;
+                flagc = (A < B);
+            end
+
+            MUL: begin
+                result = A * B;
+            end
+
+            DIV: begin
+                if (B != 0)
+                    result = A / B;
+                else
+                    result = 16'b0;
+            end
+
+            MOD: begin
+                if (B != 0)
+                    result = A % B;
+                else
+                    result = 16'b0;
+            end
+
+            MAC: begin
+                result = (A * B) + A;
+            end
+
+            AND_OP: begin
+                result = A & B;
+            end
+
+            OR_OP: begin
+                result = A | B;
+            end
+
+            XOR_OP: begin
+                result = A ^ B;
+            end
+
+            XNOR_OP: begin
+                result = ~(A ^ B);
+            end
+
+            NOT_OP: begin
+                result = ~A;
+            end
+
+            NAND_OP: begin
+                result = ~(A & B);
+            end
+
+            NOR_OP: begin
+                result = ~(A | B);
+            end
+
+            SHL: begin
+                result = A << 1;
+                flagc = A[15];
+            end
+
+            SHR: begin
+                result = A >> 1;
+                flagc = A[0];
+            end
+
+            ASHR: begin
+                result = $signed(A) >>> 1;
+                flagc = A[0];
+            end
+
+            ROL: begin
+                result = {A[14:0], A[15]};
+                flagc = A[15];
+            end
+
+            ROR: begin
+                result = {A[0], A[15:1]};
+                flagc = A[0];
+            end
+
+            CMP: begin
+                if (A > B)
+                    result = 16'd1;
+                else if (A < B)
+                    result = 16'd2;
+                else
+                    result = 16'd0;
+            end
+
+            INC: begin
+                result = A + 1'b1;
+                flagc = (result == 16'b0);
+            end
+
+            DEC: begin
+                result = A - 1'b1;
+                flagc = (A == 16'b0);
+            end
+
+            PASS_A: begin
+                result = A;
+            end
+
+            PASS_B: begin
+                result = B;
+            end
+
+            MIN_OP: begin
+                if (A < B)
+                    result = A;
+                else
+                    result = B;
+            end
+
+            MAX_OP: begin
+                if (A > B)
+                    result = A;
+                else
+                    result = B;
+            end
+
+            default: begin
+                result = 16'b0;
+                flagc = 1'b0;
+            end
+
+        endcase
+
+        // Zero flag
+        if (result == 16'b0)
+            flagz = 1'b1;
+        else
+            flagz = 1'b0;
+
+    end
+
+endmodule
+
+
+////////////////// Testbench ////////////////
+
+module ALU16_tb;
+
+    reg  [4:0]  opcode;
+    reg  [15:0] A, B;
+
+    wire [15:0] result;
+    wire        flagc;
+    wire        flagz;
+
+    // DUT
+    ALU16 dut (
+        .opcode(opcode),
+        .A(A),
+        .B(B),
+        .result(result),
+        .flagc(flagc),
+        .flagz(flagz)
+    );
+
+    initial begin
+
+        // Initial values
+        A = 16'd20;
+        B = 16'd5;
+
+        // ADD
+        opcode = 5'b00000;
+        #10;
+      $display("ADD  : A=%0d B=%0d Result=%d Carry=%b Zero=%b",
+                 A, B, result, flagc, flagz);
+
+        // SUB
+        opcode = 5'b00001;
+        #10;
+      $display("SUB  : A=%0d B=%0d Result=%d Carry=%b Zero=%b",
+                 A, B, result, flagc, flagz);
+
+        // MUL
+        opcode = 5'b00010;
+        #10;
+      $display("MUL  : A=%0d B=%0d Result=%d Carry=%b Zero=%b",
+                 A, B, result, flagc, flagz);
+
+        // DIV
+        opcode = 5'b00011;
+        #10;
+      $display("DIV  : A=%0d B=%0d Result=%d Carry=%b Zero=%b",
+                 A, B, result, flagc, flagz);
+
+        // MOD
+        opcode = 5'b00100;
+        #10;
+      $display("MOD  : A=%0d B=%0d Result=%d Carry=%b Zero=%b",
+                 A, B, result, flagc, flagz);
+
+        // MAC
+        opcode = 5'b00101;
+        #10;
+      $display("MAC  : A=%0d B=%0d Result=%d Carry=%b Zero=%b",
+                 A, B, result, flagc, flagz);
+
+        // AND
+        opcode = 5'b00110;
+        #10;
+      $display("AND  : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // OR
+        opcode = 5'b00111;
+        #10;
+      $display("OR   : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // XOR
+        opcode = 5'b01000;
+        #10;
+      $display("XOR  : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // XNOR
+        opcode = 5'b01001;
+        #10;
+      $display("XNOR : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // NOT
+        opcode = 5'b01010;
+        #10;
+      $display("NOT  : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // NAND
+        opcode = 5'b01011;
+        #10;
+      $display("NAND : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // NOR
+        opcode = 5'b01100;
+        #10;
+      $display("NOR  : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // SHL
+        opcode = 5'b01101;
+        #10;
+      $display("SHL  : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // SHR
+        opcode = 5'b01110;
+        #10;
+      $display("SHR  : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // ASHR
+        opcode = 5'b01111;
+        #10;
+        $display("ASHR : Result=%h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // ROL
+        opcode = 5'b10000;
+        #10;
+      $display("ROL  : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // ROR
+        opcode = 5'b10001;
+        #10;
+      $display("ROR  : Result=%0h Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // CMP
+        opcode = 5'b10010;
+        #10;
+      $display("CMP  : Result=%0d Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // INC
+        opcode = 5'b10011;
+        #10;
+      $display("INC  : Result=%0d Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // DEC
+        opcode = 5'b10100;
+        #10;
+      $display("DEC  : Result=%0d Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // PASS A
+        opcode = 5'b10101;
+        #10;
+      $display("PASS A : Result=%0d Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // PASS B
+        opcode = 5'b10110;
+        #10;
+      $display("PASS B : Result=%0d Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // MIN
+        opcode = 5'b10111;
+        #10;
+      $display("MIN  : Result=%0d Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        // MAX
+        opcode = 5'b11000;
+        #10;
+      $display("MAX  : Result=%0d Carry=%b Zero=%b",
+                 result, flagc, flagz);
+
+        $finish;
+
+    end
+
+endmodule
