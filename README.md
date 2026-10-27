@@ -1,1 +1,0 @@
-# verilog-mini-projects
